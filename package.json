@@ -1,0 +1,30 @@
+{
+  "name": "quick-screenshot",
+  "version": "0.1.0",
+  "description": "Lightning-fast screenshots with clipboard path for Claude",
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:background && npm run build:content && npm run copy-assets",
+    "build:background": "esbuild src/background.ts --bundle --outfile=dist/background.js --format=esm --target=es2022",
+    "build:content": "esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2022",
+    "copy-assets": "cp src/manifest.json dist/ && cp -r src/icons dist/ 2>/dev/null || mkdir -p dist/icons",
+    "watch": "npm run build && echo 'Watching...' && (npm run build:background -- --watch & npm run build:content -- --watch)",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "chrome-extension",
+    "screenshot",
+    "clipboard"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.27.3",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "gifenc": "^1.0.3",
+    "zod": "^4.3.6"
+  }
+}

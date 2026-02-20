@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Screenshot",
+  "version": "0.1.0",
+  "description": "Lightning-fast screenshots with clipboard path for Claude",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads",
+    "storage",
+    "clipboardWrite"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "commands": {
+    "capture-screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Capture screenshot (toggle preview/capture)"
+    }
+  },
+
+  "action": {
+    "default_title": "Quick Screenshot",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
