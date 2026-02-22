@@ -5,11 +5,18 @@
   "description": "Lightning-fast screenshots with clipboard path for Claude",
 
   "permissions": [
-    "activeTab",
+    "tabs",
     "scripting",
     "downloads",
     "storage",
-    "clipboardWrite"
+    "clipboardWrite",
+    "nativeMessaging",
+    "contextMenus",
+    "alarms"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
   ],
 
   "background": {

@@ -339,3 +339,282 @@ async function saveLastMode(mode: CaptureMode): Promise<void> {
   state.lastMode = mode;
   await chrome.storage.local.set({ lastMode: mode });
 }
+
+// ============================================
+// MCP Bridge - WebSocket client
+// ============================================
+
+const MCP_WS_URL = 'ws://localhost:9876';
+const MCP_KEEPALIVE_ALARM = 'mcp-keepalive';
+const MCP_INACTIVITY_ALARM = 'mcp-inactivity';
+const MCP_INACTIVITY_TIMEOUT_MIN = 10;
+
+let mcpSocket: WebSocket | null = null;
+let mcpReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let mcpModeEnabled = false;
+
+interface MCPCaptureRequest {
+  type: 'capture';
+  id: string;
+  mode: 'visible' | 'area';
+  format: 'png' | 'jpeg' | 'webp' | 'gif';
+  area?: { x: number; y: number; width: number; height: number };
+  quality?: number;
+}
+
+function connectToMCP(): void {
+  if (!mcpModeEnabled) {
+    return;
+  }
+
+  if (mcpSocket?.readyState === WebSocket.OPEN) {
+    return;
+  }
+
+  try {
+    mcpSocket = new WebSocket(MCP_WS_URL);
+
+    mcpSocket.onopen = () => {
+      console.log('[MCP] Connected to MCP server');
+      if (mcpReconnectTimer) {
+        clearTimeout(mcpReconnectTimer);
+        mcpReconnectTimer = null;
+      }
+      updateMCPBadge(true);
+    };
+
+    mcpSocket.onmessage = async (event) => {
+      try {
+        const request = JSON.parse(event.data) as MCPCaptureRequest;
+        if (request.type === 'capture') {
+          resetInactivityTimer();
+          await handleMCPCapture(request);
+        }
+      } catch (e) {
+        console.error('[MCP] Failed to handle message:', e);
+      }
+    };
+
+    mcpSocket.onclose = () => {
+      console.log('[MCP] Disconnected from MCP server');
+      mcpSocket = null;
+      if (mcpModeEnabled) {
+        updateMCPBadge(false);
+        scheduleMCPReconnect();
+      }
+    };
+
+    mcpSocket.onerror = () => {
+      // Error will trigger close, which handles reconnect
+      mcpSocket?.close();
+    };
+  } catch (e) {
+    console.error('[MCP] Connection failed:', e);
+    scheduleMCPReconnect();
+  }
+}
+
+function scheduleMCPReconnect(): void {
+  if (!mcpModeEnabled || mcpReconnectTimer) {
+    return;
+  }
+  mcpReconnectTimer = setTimeout(() => {
+    mcpReconnectTimer = null;
+    connectToMCP();
+  }, 5000);
+}
+
+function disconnectFromMCP(): void {
+  if (mcpReconnectTimer) {
+    clearTimeout(mcpReconnectTimer);
+    mcpReconnectTimer = null;
+  }
+  if (mcpSocket) {
+    mcpSocket.close();
+    mcpSocket = null;
+  }
+}
+
+// ============================================
+// MCP Mode Management
+// ============================================
+
+async function enableMCPMode(): Promise<void> {
+  mcpModeEnabled = true;
+  await chrome.storage.local.set({ mcpModeEnabled: true });
+
+  // Start keepalive alarm (every 25 seconds)
+  chrome.alarms.create(MCP_KEEPALIVE_ALARM, { periodInMinutes: 25 / 60 });
+
+  // Start inactivity timer
+  resetInactivityTimer();
+
+  // Connect to MCP server
+  connectToMCP();
+
+  // Update context menu
+  updateContextMenu();
+
+  console.log('[MCP] Mode enabled');
+}
+
+async function disableMCPMode(): Promise<void> {
+  mcpModeEnabled = false;
+  await chrome.storage.local.set({ mcpModeEnabled: false });
+
+  // Clear alarms
+  chrome.alarms.clear(MCP_KEEPALIVE_ALARM);
+  chrome.alarms.clear(MCP_INACTIVITY_ALARM);
+
+  // Disconnect
+  disconnectFromMCP();
+
+  // Update badge and menu
+  updateMCPBadge(false);
+  updateContextMenu();
+
+  console.log('[MCP] Mode disabled');
+}
+
+function resetInactivityTimer(): void {
+  chrome.alarms.clear(MCP_INACTIVITY_ALARM);
+  chrome.alarms.create(MCP_INACTIVITY_ALARM, { delayInMinutes: MCP_INACTIVITY_TIMEOUT_MIN });
+}
+
+function updateMCPBadge(connected: boolean): void {
+  if (mcpModeEnabled) {
+    chrome.action.setBadgeText({ text: connected ? 'MCP' : '...' });
+    chrome.action.setBadgeBackgroundColor({ color: connected ? '#22c55e' : '#f59e0b' });
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
+function updateContextMenu(): void {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: 'toggle-mcp-mode',
+      title: mcpModeEnabled ? '✓ Disable MCP mode' : 'Enable MCP mode',
+      contexts: ['action'],
+    });
+  });
+}
+
+// Handle alarms
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === MCP_KEEPALIVE_ALARM) {
+    // Keepalive: just being here keeps the service worker alive
+    // Also check connection status
+    if (mcpModeEnabled && (!mcpSocket || mcpSocket.readyState !== WebSocket.OPEN)) {
+      connectToMCP();
+    }
+  } else if (alarm.name === MCP_INACTIVITY_ALARM) {
+    console.log('[MCP] Inactivity timeout - disabling MCP mode');
+    disableMCPMode();
+  }
+});
+
+// Handle context menu click
+chrome.contextMenus.onClicked.addListener((info) => {
+  if (info.menuItemId === 'toggle-mcp-mode') {
+    if (mcpModeEnabled) {
+      disableMCPMode();
+    } else {
+      enableMCPMode();
+    }
+  }
+});
+
+// Initialize on startup
+chrome.runtime.onStartup.addListener(() => {
+  updateContextMenu();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  updateContextMenu();
+});
+
+async function handleMCPCapture(request: MCPCaptureRequest): Promise<void> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) {
+      sendMCPResponse(request.id, false, undefined, 'No active tab');
+      return;
+    }
+
+    const settings = await getSettings();
+    const format = request.format || settings.defaultFormat;
+    const quality = request.quality || settings.jpegQuality;
+
+    let path: string | null = null;
+
+    if (request.mode === 'area' && request.area) {
+      // Area capture
+      const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'png' });
+      const croppedDataUrl = await cropImage(dataUrl, request.area);
+
+      let finalDataUrl = croppedDataUrl;
+      if (format === 'jpeg' || format === 'webp') {
+        finalDataUrl = await convertFormat(croppedDataUrl, format, quality);
+      } else if (format === 'gif') {
+        finalDataUrl = await convertToGif(croppedDataUrl);
+      }
+
+      path = await saveAndGetPath(finalDataUrl, format);
+    } else {
+      // Visible capture
+      const captureFormat = format === 'jpeg' ? 'jpeg' : 'png';
+      const dataUrl = await chrome.tabs.captureVisibleTab({
+        format: captureFormat,
+        quality,
+      });
+
+      let finalDataUrl = dataUrl;
+      if (format === 'gif') {
+        finalDataUrl = await convertToGif(dataUrl);
+      } else if (format === 'webp') {
+        finalDataUrl = await convertFormat(dataUrl, 'webp', quality);
+      }
+
+      path = await saveAndGetPath(finalDataUrl, format);
+    }
+
+    if (path) {
+      sendMCPResponse(request.id, true, path);
+    } else {
+      sendMCPResponse(request.id, false, undefined, 'Failed to save screenshot');
+    }
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'Unknown error';
+    sendMCPResponse(request.id, false, undefined, error);
+  }
+}
+
+async function saveAndGetPath(dataUrl: string, format: string): Promise<string | null> {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `screenshot-${timestamp}.${format}`;
+
+  const downloadId = await chrome.downloads.download({
+    url: dataUrl,
+    filename,
+    saveAs: false,
+    conflictAction: 'uniquify',
+  });
+
+  return getDownloadPath(downloadId);
+}
+
+function sendMCPResponse(id: string, success: boolean, path?: string, error?: string): void {
+  if (mcpSocket?.readyState === WebSocket.OPEN) {
+    mcpSocket.send(JSON.stringify({ id, success, path, error }));
+  }
+}
+
+// Restore MCP mode state on startup
+chrome.storage.local.get(['mcpModeEnabled'], (result) => {
+  if (result.mcpModeEnabled) {
+    enableMCPMode();
+  } else {
+    updateContextMenu();
+  }
+});
