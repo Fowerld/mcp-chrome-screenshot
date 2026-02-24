@@ -1,6 +1,12 @@
-# Quick Screenshot
+# MCP Chrome Screenshot
 
 Extension Chrome pour captures d'écran rapides avec intégration Claude Code via MCP.
+
+## Prerequisites
+
+- Node.js 18+
+- npm
+- Chrome / Chromium
 
 ## Features
 
@@ -17,7 +23,7 @@ Extension Chrome pour captures d'écran rapides avec intégration Claude Code vi
 
 ```bash
 # Build l'extension
-cd /path/to/chrome-screenshot
+cd /path/to/mcp-chrome-screenshot
 npm install
 npm run build
 ```
@@ -43,10 +49,10 @@ Ajouter le serveur MCP à la config Claude Code :
 
 ```bash
 # Option 1 : Config projet (recommandé)
-jq '.projects["/chemin/vers/chrome-screenshot"].mcpServers = {
+jq '.projects["/path/to/mcp-chrome-screenshot"].mcpServers = {
   "quick-screenshot": {
     "command": "node",
-    "args": ["/chemin/vers/chrome-screenshot/mcp-server/dist/index.js"]
+    "args": ["/path/to/mcp-chrome-screenshot/mcp-server/dist/index.js"]
   }
 }' ~/.claude.json > /tmp/claude.json.new && mv /tmp/claude.json.new ~/.claude.json
 
@@ -56,7 +62,7 @@ jq '.projects["/chemin/vers/chrome-screenshot"].mcpServers = {
   "mcpServers": {
     "quick-screenshot": {
       "command": "node",
-      "args": ["/chemin/vers/chrome-screenshot/mcp-server/dist/index.js"]
+      "args": ["/path/to/mcp-chrome-screenshot/mcp-server/dist/index.js"]
     }
   }
 }

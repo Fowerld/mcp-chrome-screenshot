@@ -1,8 +1,8 @@
-# Quick Screenshot
+# MCP Chrome Screenshot
 
-Extension Chrome pour captures d'écran ultra-rapides, optimisée pour l'usage avec Claude Code.
+Chrome extension for quick screenshots with MCP integration.
 
-**Use-case** : Capturer rapidement des screenshots et les partager avec Claude via le path dans le clipboard, ou laisser Claude déclencher lui-même les captures via MCP.
+**Use-case**: Quickly capture screenshots and share them with Claude via the path in clipboard, or let Claude trigger captures itself via MCP.
 
 ## Quick Start
 
@@ -10,13 +10,13 @@ Extension Chrome pour captures d'écran ultra-rapides, optimisée pour l'usage a
 npm install && npm run build
 ```
 
-Charger `dist/` dans Chrome (`chrome://extensions` → Mode développeur → Charger non empaquetée).
+Load `dist/` in Chrome (`chrome://extensions` → Developer mode → Load unpacked).
 
-`Ctrl+Shift+S` pour capturer.
+`Ctrl+Shift+S` to capture.
 
-## Intégration Claude Code
+## Claude Code Integration
 
-Voir [INSTALL.md](INSTALL.md) pour configurer le serveur MCP et permettre à Claude de déclencher des captures.
+See [INSTALL.md](INSTALL.md) to configure the MCP server and allow Claude to trigger captures.
 
 ## License
 
