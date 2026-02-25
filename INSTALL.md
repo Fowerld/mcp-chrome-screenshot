@@ -19,56 +19,83 @@ Extension Chrome pour captures d'écran rapides avec intégration Claude Code vi
 
 ## Installation
 
-### 1. Extension Chrome
+### Option 1 : Script automatique (recommandé)
 
 ```bash
-# Build l'extension
-cd /path/to/mcp-chrome-screenshot
-npm install
-npm run build
+./install.sh
 ```
 
-Puis dans Chrome :
+Le script :
+- Build l'extension Chrome et le serveur MCP
+- Tue les processus orphelins sur le port 9876
+- Configure Claude Code pour ce projet
+
+### Option 2 : Installation manuelle
+
+#### 1. Extension Chrome
+
+```bash
+npm install && npm run build
+```
+
+Dans Chrome :
 1. Ouvrir `chrome://extensions`
 2. Activer "Mode développeur"
 3. Cliquer "Charger l'extension non empaquetée"
 4. Sélectionner le dossier `dist/`
 
-### 2. Serveur MCP (pour intégration Claude Code)
+#### 2. Serveur MCP
 
 ```bash
-# Build le serveur MCP
-cd mcp-server
-npm install
-npm run build
+cd mcp-server && npm install && npm run build
 ```
 
-### 3. Configuration Claude Code
+#### 3. Configuration Claude Code
 
-Ajouter le serveur MCP à la config Claude Code :
+Ajouter à `~/.claude.json` dans la section du projet :
 
-```bash
-# Option 1 : Config projet (recommandé)
-jq '.projects["/path/to/mcp-chrome-screenshot"].mcpServers = {
-  "quick-screenshot": {
-    "command": "node",
-    "args": ["/path/to/mcp-chrome-screenshot/mcp-server/dist/index.js"]
-  }
-}' ~/.claude.json > /tmp/claude.json.new && mv /tmp/claude.json.new ~/.claude.json
-
-# Option 2 : Config globale
-# Ajouter dans ~/.claude/settings.json :
+```json
 {
-  "mcpServers": {
-    "quick-screenshot": {
-      "command": "node",
-      "args": ["/path/to/mcp-chrome-screenshot/mcp-server/dist/index.js"]
+  "projects": {
+    "/chemin/vers/mcp-chrome-screenshot": {
+      "mcpServers": {
+        "quick-screenshot": {
+          "command": "node",
+          "args": ["/chemin/vers/mcp-chrome-screenshot/mcp-server/dist/index.js"]
+        }
+      }
     }
   }
 }
 ```
 
-Relancer Claude Code pour charger le serveur MCP.
+### Étapes manuelles (toujours requises)
+
+1. **Charger l'extension** dans Chrome (voir ci-dessus)
+2. **Activer MCP Mode** : cliquer sur l'icône Quick Screenshot → activer "MCP Mode"
+3. **Relancer Claude Code** dans ce projet
+
+### Vérification
+
+Dans Claude Code :
+```
+mcp__quick-screenshot__status
+```
+
+Doit retourner "Quick Screenshot extension is connected and ready."
+
+### Troubleshooting
+
+**Port 9876 déjà utilisé :**
+```bash
+# Trouver et tuer le processus
+ss -tlnp | grep 9876
+kill <PID>
+```
+
+**Extension non connectée :**
+- Vérifier que "MCP Mode" est activé dans l'extension
+- Vérifier que le serveur MCP tourne (relancer Claude Code)
 
 ## Usage
 

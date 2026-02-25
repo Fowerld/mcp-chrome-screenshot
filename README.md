@@ -7,16 +7,20 @@ Chrome extension for quick screenshots with MCP integration.
 ## Quick Start
 
 ```bash
-npm install && npm run build
+./install.sh
 ```
 
-Load `dist/` in Chrome (`chrome://extensions` → Developer mode → Load unpacked).
+This builds everything and configures Claude Code. Then:
 
-`Ctrl+Shift+S` to capture.
+1. Load `dist/` in Chrome (`chrome://extensions` → Developer mode → Load unpacked)
+2. Enable "MCP Mode" in the extension popup
+3. Restart Claude Code in this project
 
-## Claude Code Integration
+Manual capture: `Ctrl+Shift+S`
 
-See [INSTALL.md](INSTALL.md) to configure the MCP server and allow Claude to trigger captures.
+## Documentation
+
+See [INSTALL.md](INSTALL.md) for detailed installation steps and architecture.
 
 ## License
 
