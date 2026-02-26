@@ -4,11 +4,8 @@
   "description": "Lightning-fast screenshots with clipboard path for Claude",
   "type": "module",
   "scripts": {
-    "build": "npm run build:background && npm run build:content && npm run copy-assets",
-    "build:background": "esbuild src/background.ts --bundle --outfile=dist/background.js --format=esm --target=es2022",
-    "build:content": "esbuild src/content.ts --bundle --outfile=dist/content.js --format=iife --target=es2022",
-    "copy-assets": "cp src/manifest.json dist/ && cp -r src/icons dist/ 2>/dev/null || mkdir -p dist/icons",
-    "watch": "npm run build && echo 'Watching...' && (npm run build:background -- --watch & npm run build:content -- --watch)",
+    "build": "node esbuild.config.js",
+    "watch": "node esbuild.config.js --watch",
     "clean": "rm -rf dist"
   },
   "keywords": [

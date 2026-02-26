@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -28,16 +26,19 @@ interface CaptureResponse {
 class ExtensionBridge {
   private wss: WebSocketServer;
   private client: WebSocket | null = null;
-  private pendingRequests = new Map<string, {
-    resolve: (response: CaptureResponse) => void;
-    reject: (error: Error) => void;
-  }>();
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (response: CaptureResponse) => void;
+      reject: (error: Error) => void;
+    }
+  >();
 
   constructor(port: number) {
     this.wss = new WebSocketServer({ port });
 
     this.wss.on("connection", (ws) => {
-      console.error(`[MCP] Extension connected`);
+      console.error("[MCP] Extension connected");
       this.client = ws;
 
       ws.on("message", (data) => {
@@ -78,7 +79,7 @@ class ExtensionBridge {
     const id = crypto.randomUUID();
     const fullRequest: CaptureRequest = { id, ...request };
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         this.pendingRequests.delete(id);
         resolve({
@@ -93,9 +94,8 @@ class ExtensionBridge {
           clearTimeout(timeout);
           resolve(response);
         },
-        reject: (error) => {
+        reject: () => {
           clearTimeout(timeout);
-          reject(error);
         },
       });
 
@@ -104,82 +104,72 @@ class ExtensionBridge {
   }
 }
 
-async function main() {
+export async function startServer(version: string): Promise<void> {
   const bridge = new ExtensionBridge(WS_PORT);
 
   const server = new McpServer({
     name: "quick-screenshot",
-    version: "0.1.0",
+    version,
   });
 
   server.tool(
     "capture",
     "Capture a screenshot of the current browser tab",
     {
-      mode: z.enum(["visible", "area"]).default("visible").describe(
-        "Capture mode: 'visible' for viewport, 'area' for a specific region"
-      ),
-      format: z.enum(["png", "jpeg", "webp", "gif"]).default("png").describe(
-        "Output format"
-      ),
-      area: z.object({
-        x: z.number().describe("X coordinate"),
-        y: z.number().describe("Y coordinate"),
-        width: z.number().describe("Width in pixels"),
-        height: z.number().describe("Height in pixels"),
-      }).optional().describe("Area to capture (only for mode='area')"),
-      quality: z.number().min(1).max(100).optional().describe(
-        "Quality for JPEG/WebP (1-100)"
-      ),
+      mode: z
+        .enum(["visible", "area"])
+        .default("visible")
+        .describe("Capture mode: 'visible' for viewport, 'area' for a specific region"),
+      format: z
+        .enum(["png", "jpeg", "webp", "gif"])
+        .default("png")
+        .describe("Output format"),
+      area: z
+        .object({
+          x: z.number().describe("X coordinate"),
+          y: z.number().describe("Y coordinate"),
+          width: z.number().describe("Width in pixels"),
+          height: z.number().describe("Height in pixels"),
+        })
+        .optional()
+        .describe("Area to capture (only for mode='area')"),
+      quality: z
+        .number()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Quality for JPEG/WebP (1-100)"),
     },
     async ({ mode, format, area, quality }) => {
       const response = await bridge.capture({ mode, format, area, quality });
 
       if (response.success) {
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Screenshot saved to: ${response.path}`,
-            },
-          ],
-        };
-      } else {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Capture failed: ${response.error}`,
-            },
-          ],
-          isError: true,
+          content: [{ type: "text" as const, text: `Screenshot saved to: ${response.path}` }],
         };
       }
-    }
-  );
-
-  server.tool(
-    "status",
-    "Check if the Quick Screenshot extension is connected",
-    {},
-    async () => {
-      const connected = bridge.isConnected();
       return {
-        content: [
-          {
-            type: "text" as const,
-            text: connected
-              ? "Quick Screenshot extension is connected and ready."
-              : "Quick Screenshot extension is not connected. Open Chrome with the extension installed.",
-          },
-        ],
+        content: [{ type: "text" as const, text: `Capture failed: ${response.error}` }],
+        isError: true,
       };
     }
   );
+
+  server.tool("status", "Check if the Quick Screenshot extension is connected", {}, async () => {
+    const connected = bridge.isConnected();
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: connected
+            ? "Quick Screenshot extension is connected and ready."
+            : "Quick Screenshot extension is not connected. Open Chrome with the extension installed.",
+        },
+      ],
+    };
+  });
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("[MCP] Server started");
 }
-
-main().catch(console.error);

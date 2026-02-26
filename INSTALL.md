@@ -52,18 +52,23 @@ cd mcp-server && npm install && npm run build
 
 #### 3. Configuration Claude Code
 
-Ajouter à `~/.claude.json` dans la section du projet :
+**Option A : Installation globale npm (recommandé)**
+
+```bash
+cd mcp-server && npm install -g .
+quick-screenshot-mcp --install
+```
+
+**Option B : Configuration manuelle**
+
+Ajouter à `~/.claude/settings.json` :
 
 ```json
 {
-  "projects": {
-    "/chemin/vers/mcp-chrome-screenshot": {
-      "mcpServers": {
-        "quick-screenshot": {
-          "command": "node",
-          "args": ["/chemin/vers/mcp-chrome-screenshot/mcp-server/dist/index.js"]
-        }
-      }
+  "mcpServers": {
+    "quick-screenshot": {
+      "command": "quick-screenshot-mcp",
+      "args": []
     }
   }
 }

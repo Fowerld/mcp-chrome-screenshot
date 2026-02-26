@@ -31,8 +31,8 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
-// Handle messages from content script
-chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
+// Handle messages from content script and popup
+chrome.runtime.onMessage.addListener((message: Message & { type: string; enabled?: boolean }, sender, sendResponse) => {
   switch (message.type) {
     case 'AREA_SELECTED':
       handleAreaCapture(message.rect, sender.tab?.id, message.format);
@@ -57,6 +57,20 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
         state.previewActive = false;
       })();
       break;
+    case 'GET_MCP_STATE':
+      sendResponse({
+        enabled: mcpModeEnabled,
+        connected: mcpSocket?.readyState === WebSocket.OPEN,
+      });
+      return true;
+    case 'SET_MCP_ENABLED':
+      if (message.enabled) {
+        enableMCPMode();
+      } else {
+        disableMCPMode();
+      }
+      sendResponse({ ok: true });
+      return true;
   }
   // No async response needed
 });

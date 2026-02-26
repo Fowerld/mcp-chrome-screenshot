@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MCP_SERVER_PATH="$SCRIPT_DIR/mcp-server/dist/index.js"
+MCP_SERVER_PATH="$SCRIPT_DIR/mcp-server/dist/cli.js"
 WS_PORT=9876
 
 echo "=== Quick Screenshot MCP Installation ==="

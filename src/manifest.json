@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "Quick Screenshot",
   "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu2Bz5/UFPiFAn/OO8GAHV5PeH9kNnXn3/5yIxBK9tJqQFmJ+dXDLOfMiXyXdOuNR+itPtaCDgP36UReARbYiXZlkDSgaHkcndk9L826CNjApH9wiwkPSp/vulBgwpZXYyO/yxRtQIfZ0nQoXFi9oRJN30G+g5Qx7SmIiE5hRxjt0qrYv3B/TEaz+udclBZBjynBURbSETNMcvN1sU7fP8QzqtyfVRghIey+WAYo5+YRFEwhLNk4au+k8DF4WyUtYcf/Rsjty9GTwdpS+iKBH8QmiLxq/A7ehdYhf6K+4EOCANp4xkig7c6LlPLq6HDVoFUcfIMWBl7/9co7zgzwUvQIDAQAB",
   "description": "Lightning-fast screenshots with clipboard path for Claude",
 
   "permissions": [
@@ -36,6 +37,7 @@
 
   "action": {
     "default_title": "Quick Screenshot",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
