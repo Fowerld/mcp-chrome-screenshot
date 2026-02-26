@@ -1,6 +1,6 @@
 {
   "name": "quick-screenshot-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for Quick Screenshot Chrome extension - allows Claude Code to trigger screenshots",
   "type": "module",
   "main": "dist/server.js",
